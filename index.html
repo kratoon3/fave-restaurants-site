@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lunch Menus</title>
+    <link rel="stylesheet" href="./assets/salesforce-lightning-design-system.min.css">
+    <style>
+        body {
+            overflow-y: hidden;
+            background-color: white;
+        }
+
+        iframe {
+            width: 100vw;
+            height: 99vh;
+        }
+
+        .sticky {
+            position: fixed;
+            top: 0;
+        }
+
+        .slds-tabs_default__nav {
+            z-index: 99;
+        }
+
+        .desktop .content {
+            padding-top: 60px;
+        }
+
+        .desktop {
+            display: none;
+        }
+
+        .mobile {
+            display: block;
+        }
+
+        .mobile .slds-panel__body {
+            padding: 0;
+        }
+
+        @media (min-width: 961px) {
+            .desktop {
+                display: block;
+            }
+
+            .mobile {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="desktop slds-tabs_default">
+    <ul class="slds-tabs_default__nav slds-p-left_small sticky" role="tablist"></ul>
+    <div class="tab_contents"></div>
+</div>
+<div class="mobile slds-tabs-mobile__container">
+    <ul class="slds-tabs-mobile"></ul>
+    <div class="tab_contents"></div>
+</div>
+<script src="./data.js"></script>
+<script>
+    function query(selector) {
+        return document.querySelector(selector)
+    }
+
+    function queryAll(selector) {
+        return document.querySelectorAll(selector)
+    }
+
+    function getLocations() {
+        return locations.sort((a, b) => a.name.localeCompare(b.name));
+    }
+    (() => {
+        // set desktop items
+        query('.desktop .slds-tabs_default__nav').innerHTML = getLocations().map(({id, name}, idx) => {
+            const isActive = idx === 0;
+            return `
+<li class="slds-tabs_default__item ${isActive ? "slds-is-active" : ""}" title="${name}" id="tab-${id}" role="presentation"
+    onclick="handleTabClick('${id}')">
+    <a class="slds-tabs_default__link" role="tab" tabindex="${idx}" id="tab-${id}__item">${name}</a>
+</li>`;
+        }).join('');
+        query('.desktop .tab_contents').innerHTML = getLocations().map(({id, name, url}, idx) => {
+            const isActive = idx === 0;
+            return `
+<div id="tab-${id}__content" class="content slds-tabs_default__content ${isActive ? "slds-show" : "slds-hide"}">
+    <iframe id="desktop-${id}" class="iframe-${id}"></iframe>
+</div>`
+        }).join('');
+        // set mobile items
+        query('.mobile .slds-tabs-mobile').innerHTML = getLocations().map(({id, name}, idx) => {
+            return `
+<li class="slds-tabs-mobile__item">
+    <button class="slds-button slds-button_full-width" onclick="handleTabClick('${id}')">
+        <span class="slds-truncate" title="${name}">${name}</span>
+        <svg class="slds-icon slds-icon_x-small slds-icon-text-default">
+            <use xlink:href="/assets/symbols.svg#chevronright"></use>
+        </svg>
+    </button>
+</li>`;
+        }).join('');
+        query('.mobile .tab_contents').innerHTML = getLocations().map(({id, name, url}, idx) => {
+            return `
+<div class="content slds-panel slds-hide" id="slds-panel-${id}">
+    <div class="slds-panel__header slds-panel__header_align-center">
+        <button class="slds-button slds-button_icon slds-button_icon-small slds-panel__back"
+                title="Collapse ${name}" onclick="handleBackClick()">
+            <svg class="slds-button__icon">
+                <use xlink:href="/assets/symbols.svg#chevronleft"></use>
+            </svg>
+            <span class="slds-assistive-text">Collapse ${name}</span>
+        </button>
+        <h2 class="slds-panel__header-title slds-text-heading_small slds-truncate" title="${name}">${name}</h2>
+    </div>
+    <div class="slds-panel__body">
+        <iframe id="mobile-${id}" class="iframe-${id}"></iframe>
+    </div>
+</div>`
+        }).join('');
+        loadIframe(getLocations()[0].id);
+    })();
+    
+    function handleTabClick(id) {
+        // desktop
+        Array.from(queryAll('.desktop li.slds-tabs_default__item')).forEach(it => {
+            if (it.id === `tab-${id}`) {
+                it.classList.add('slds-is-active');
+            } else {
+                it.classList.remove('slds-is-active');
+            }
+        });
+        Array.from(queryAll('.desktop .content')).forEach(it => {
+            if (it.id === `tab-${id}__content`) {
+                it.classList.add('slds-show');
+                it.classList.remove('slds-hide');
+            } else {
+                it.classList.add('slds-hide');
+                it.classList.remove('slds-show');
+            }
+        });
+        // mobile
+        Array.from(queryAll('.mobile .content')).forEach(it => {
+            if (it.id === `slds-panel-${id}`) {
+                console.log('show')
+                it.classList.add('slds-show');
+                it.classList.remove('slds-hide');
+            } else {
+                console.log('hide')
+                it.classList.add('slds-hide');
+                it.classList.remove('slds-show');
+            }
+        });
+        loadIframe(id);
+        document.querySelector('.slds-tabs-mobile').classList.add('slds-hide');
+    }
+    function loadIframe(id) {
+        const {url} = getLocations().find(it => it.id === id);
+        queryAll(`.iframe-${id}`).forEach(iframe => {
+            if (iframe && !iframe.src) {
+                console.log('loading', url)
+                iframe.src = url;
+            } 
+        });
+    }
+    function handleBackClick() {
+        document.querySelector('.slds-tabs-mobile').classList.remove('slds-hide');
+        Array.from(queryAll('.mobile .content')).forEach(it => {
+            it.classList.add('slds-hide');
+            it.classList.remove('slds-show');
+        });
+    }
+</script>
+</body>
+</html>
